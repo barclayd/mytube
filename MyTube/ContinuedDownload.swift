@@ -1,7 +1,7 @@
 import BackgroundTasks
 import Foundation
 
-/// One lease covers extraction, both transfers and remuxing for the entire user-started batch.
+/// One lease covers extraction, both transfers and remuxing for one user-started download.
 @MainActor protocol DownloadBackgroundWork: AnyObject {
   func begin(title: String, onExpiration: @escaping @MainActor () -> Void) async throws
   func report(completed: Int64, total: Int64, subtitle: String)
@@ -53,7 +53,7 @@ import Foundation
   // iOS 27's asynchronous submission reports failures the old submit API could miss.
   private nonisolated static func submit(identifier: String, title: String) async throws {
     let request = BGContinuedProcessingTaskRequest(
-      identifier: identifier, title: title, subtitle: "Preparing videos…")
+      identifier: identifier, title: title, subtitle: "Preparing video…")
     request.strategy = .fail
     try await BGTaskScheduler.shared.submitTaskRequest(request)
   }

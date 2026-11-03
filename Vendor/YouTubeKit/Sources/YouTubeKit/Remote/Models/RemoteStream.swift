@@ -11,6 +11,7 @@ struct RemoteStream: Decodable {
     let url: URL
     let itag: Int
     let ext: String
+    let videoTitle: String?
 
     let videoCodec: String?
     let audioCodec: String?

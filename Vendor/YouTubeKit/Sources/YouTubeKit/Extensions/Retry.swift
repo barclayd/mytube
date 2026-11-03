@@ -22,9 +22,12 @@ extension Task {
         var lastError: any Error = RetryError.emptyMethods
         
         for method in methods {
+            try Task<Never, Never>.checkCancellation()
             do {
                 return try await block(method)
             } catch let error {
+                try Task<Never, Never>.checkCancellation()
+                if error is CancellationError { throw error }
                 lastError = error
             }
         }

@@ -24,20 +24,19 @@ YouTubeKit is vendored at `Vendor/YouTubeKit` from revision `7f75a2299dc329c0b78
 
 ## Downloads
 
-- Uses YouTubeKit's local extraction; no third-party remote extraction proxy
+- Uses a private Cloudflare-hosted YouTubeKit server for configured personal builds; extraction and video/audio transfers run through Cloudflare
+- Uses YouTubeKit’s local → remote fallback when no private extractor is configured; local metadata failures do not stop fallback
+- Downloads one video at a time, rejects duplicates without querying YouTube and discards old batch checkpoints
 - Defaults to Full HD (up to 1080p), with persistent 360p, 720p, 1080p and 4K (2160p) choices in Add Video; the clipboard action uses the same preference
 - Selects the best available compatible MP4 video and AAC audio, downloading separate tracks when needed and combining them without re-encoding
 - Shows the actual saved resolution; source availability and device codec support can limit the requested quality
-- Settings → Upgrade All to Max Quality checks every saved video in sequence, skips videos already at maximum and preserves old copies until each replacement is safely saved; supports stopping the batch
 - Does not download live HLS streams
 - Waits for YouTubeKit's stream availability time before requesting media
-- Reports per-video upgrade failures; pauses and preserves the remaining queue when YouTube requires a sign-in/bot check, without retrying every video
 - Reports extraction and HTTP failures; keeps the entered URL available for retry
 - Shows transfer progress when the server provides a content length; supports cancellation
 - Validates playback before adding a video to the library and removes partial files on failure
 - Stores an atomic JSON index, MP4s and generated thumbnails in Documents/Videos, excluded from iCloud backups
-- Uses `BGContinuedProcessingTask` for the whole user-started download or upgrade batch, including extraction, transfers and remuxing, with system progress and cancellation while the screen is locked
-- Saves the remaining upgrade queue after each video; Settings offers Resume Quality Upgrades after an interruption or relaunch, without redoing completed videos
+- Uses `BGContinuedProcessingTask` for the whole user-started download, including extraction, transfers and remuxing, with system progress and cancellation while the screen is locked
 - Keeps working files accessible after the first device unlock; if iOS denies background execution, shows a keep-open message and uses only a short cleanup allowance
 - Remains subject to iOS resource limits and force-quit cancellation; resuming restarts the interrupted video's transfer (no byte-range resume)
 
@@ -48,3 +47,11 @@ YouTube changes its unofficial interfaces frequently, and extraction can fail by
 ## Checks
 
 Unit tests cover recognised URL formats, invalid and deceptive hosts, library persistence, resolution selection and combining a 1920×1080 video track with audio without reducing resolution. Parser regression tests run separately with `swift test --package-path Vendor/YouTubeKit`. Simulator evidence is attached to the pull request. Development builds can be signed with a locally selected team and installed directly on a connected device. TestFlight delivery is not configured.
+
+## Private extractor
+
+The personal build uses [the MyTube server fork](https://github.com/barclayd/YouTubeKit-Server) at `https://mytube-extractor.barclaysd.workers.dev`. The server requires authentication and issues short-lived signed media links. It can still encounter YouTube restrictions.
+
+`MyTube/Build.xcconfig` optionally includes the ignored `MyTube/PrivateRemote.xcconfig`. Define `MYTUBE_REMOTE_URL` (write the scheme as `https:/$()/` in xcconfig) and `MYTUBE_REMOTE_TOKEN` there before building. The token authenticates only the WebSocket request to the private Worker; it is not forwarded to YouTube. A personal build embeds this token in its app bundle. Do not commit the private file or use this shared-token model for wider distribution.
+
+YouTubeKit’s vendored changes add remote request headers and stream titles, propagate remote errors, and keep local availability/metadata checks from blocking remote-only extraction.

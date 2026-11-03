@@ -17,7 +17,7 @@ settings:
     INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
     MARKETING_VERSION: '1.0'
-    CURRENT_PROJECT_VERSION: '2'
+    CURRENT_PROJECT_VERSION: '3'
 targets:
   MyTube:
     type: application
@@ -27,9 +27,16 @@ targets:
       properties:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        MyTubeRemoteURL: $(MYTUBE_REMOTE_URL)
+        MyTubeRemoteToken: $(MYTUBE_REMOTE_TOKEN)
         UIBackgroundModes: [audio, processing]
         BGTaskSchedulerPermittedIdentifiers: [com.barclayd.MyTube.downloads.*]
-    sources: MyTube
+    configFiles:
+      Debug: MyTube/Build.xcconfig
+      Release: MyTube/Build.xcconfig
+    sources:
+      - path: MyTube
+        excludes: [PrivateRemote.xcconfig]
     dependencies:
       - package: YouTubeKit
   MyTubeTests:

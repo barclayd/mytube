@@ -21,3 +21,11 @@ swift test --package-path Vendor/YouTubeKit
 ```
 
 When updating the dependency, compare this directory to the new upstream source. Remove the local package and return `project.yml` to a remote pin when upstream contains an equivalent tested fix.
+
+## Private remote extraction
+
+MyTube can configure an authenticated `.remote(serverURL:)` endpoint. `YouTube` accepts optional `remoteHeaders`, applied only to the WebSocket request. Local availability checks run inside the local extraction attempt so a broken local check cannot prevent fallback. Streams carry an optional `videoTitle` from local player metadata or the remote `video_title` field; MyTube avoids a separate metadata fetch. Older server responses remain supported. Remote server error packets are reported as errors, including explicit YouTube bot challenges.
+
+The server deployment and signed media relay are maintained in [barclayd/YouTubeKit-Server](https://github.com/barclayd/YouTubeKit-Server); these additional patches are separate from upstream Unicode-parser PR #151.
+
+Cancellation stops the WebSocket task and does not start another extraction method. Offline regression tests cover this, remote stream titles and compatibility with older servers.

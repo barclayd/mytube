@@ -6,11 +6,6 @@ struct DownloadQualityTests {
   @Test func choosesHDInsteadOfCombinedSD() {
     #expect(DownloadQuality.fullHD.resolution(from: [144, 360, 720, 1080, 1440, 2160]) == 1080)
   }
-  @Test func maximumUsesHighestSourceBeyondNormalPreference() {
-    #expect(DownloadQuality.maximum.resolution(from: [360, 1080, 2160, 4320]) == 4320)
-    #expect(DownloadQuality.maximum.resolution(from: [360]) == 360)
-    #expect(DownloadQuality.maximum.resolution(from: []) == nil)
-  }
   @Test func respectsSmallerFilePreference() {
     #expect(DownloadQuality.hd.resolution(from: [360, 720, 1080, 2160]) == 720)
   }

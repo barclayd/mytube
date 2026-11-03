@@ -1,0 +1,3 @@
+MYTUBE_REMOTE_URL =
+MYTUBE_REMOTE_TOKEN =
+#include? "PrivateRemote.xcconfig"

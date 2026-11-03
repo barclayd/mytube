@@ -7,17 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		076B3AC43FEABE2DD8785AA4 /* BackgroundDownloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F9F099A3B0013B68C58F7B /* BackgroundDownloadTests.swift */; };
 		094D171C06A46BA2709B007E /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AFFE64C67FAE7CD2F7ECC5E /* LibraryView.swift */; };
 		0D41AF08285A611E338DBE89 /* LibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2C0E403466D82BF7D45C7A /* LibraryTests.swift */; };
 		1CC9D86E2E1CDD8D697D5CDB /* DownloadQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8820FD5EB0707D01A3205B7F /* DownloadQuality.swift */; };
 		20B8A06065A744A18FCE919A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AF68AFD9E372D2E2AFA04619 /* PrivacyInfo.xcprivacy */; };
+		22B142E9FA27F3E39FF2E6D5 /* RemoteExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAB6835C4BA6144EAA0FC76 /* RemoteExtraction.swift */; };
 		27DE6A1181CB62F8D9146C26 /* MediaAssemblerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B3F92EF4A051F3E8C7FAEE /* MediaAssemblerTests.swift */; };
 		3A015CF7511709E2BA9A5E90 /* DownloadQualityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4CB018047017645FDB67E08 /* DownloadQualityTests.swift */; };
 		43D32AC74F3223A58F3E038B /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = F52663A337430FB04AD31FA3 /* Library.swift */; };
 		474FA21E470B9C6D8D4EB038 /* MediaAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3DBB375A8652AC113696D9D /* MediaAssembler.swift */; };
 		5D50320707EFA5A89856D95C /* Long1080.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 8E07A3C4B2E424232A22BE33 /* Long1080.mp4 */; };
 		62D27714C1E7A5177F26E7A2 /* Tail1080.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 796C4FC7333B0B6B494B368C /* Tail1080.mp4 */; };
-		6728A80C25A3DF1FF926DDD4 /* BackgroundUpgradeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8BDABFBDC5885DD42B5FB17 /* BackgroundUpgradeTests.swift */; };
 		822F7370DF1805F19EC069F1 /* TailAudio.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 06F388643A1D7AA73A9A95E2 /* TailAudio.m4a */; };
 		8F02BEB577B8119D469A18E3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F71230388F5DE83FDFA9032A /* Assets.xcassets */; };
 		95B934831F901761EA66DF9A /* NativePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81ED0EE67E3672F2082AEE5 /* NativePlayer.swift */; };
@@ -29,7 +30,6 @@
 		D6D04AA44A223718F8C90440 /* Fragmented1080.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = D605E98AF0930CA1DEA92B4A /* Fragmented1080.mp4 */; };
 		F3D2C645373F254DDEB25677 /* YouTubeLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75CBFBCF26CA80C991EFC28 /* YouTubeLink.swift */; };
 		F8FB1401BC88859E3A9449AE /* MyTubeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 393376DAB5155BE943E940EA /* MyTubeApp.swift */; };
-		FAEDDA6B94FB8D912A045146 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FFCFD8C5D64A4DBA4D62AE /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,14 +43,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		00FFCFD8C5D64A4DBA4D62AE /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		06F388643A1D7AA73A9A95E2 /* TailAudio.m4a */ = {isa = PBXFileReference; path = TailAudio.m4a; sourceTree = "<group>"; };
 		0DE09DC94F4BACEEEA26FE94 /* YouTubeKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = YouTubeKit; path = Vendor/YouTubeKit; sourceTree = SOURCE_ROOT; };
 		1AFFE64C67FAE7CD2F7ECC5E /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		1D843417ED3E1AD01AE17918 /* Audio.m4a */ = {isa = PBXFileReference; path = Audio.m4a; sourceTree = "<group>"; };
 		1E3D94C7EFD2A1AC7B589711 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		31F9F099A3B0013B68C58F7B /* BackgroundDownloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundDownloadTests.swift; sourceTree = "<group>"; };
 		35353ABBDF863B20934F3358 /* ContinuedDownload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuedDownload.swift; sourceTree = "<group>"; };
 		393376DAB5155BE943E940EA /* MyTubeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyTubeApp.swift; sourceTree = "<group>"; };
+		4BAB6835C4BA6144EAA0FC76 /* RemoteExtraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteExtraction.swift; sourceTree = "<group>"; };
 		5F8A19F729B9BAC84D22FF0B /* MyTube.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MyTube.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		796C4FC7333B0B6B494B368C /* Tail1080.mp4 */ = {isa = PBXFileReference; path = Tail1080.mp4; sourceTree = "<group>"; };
 		8820FD5EB0707D01A3205B7F /* DownloadQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadQuality.swift; sourceTree = "<group>"; };
@@ -58,10 +59,10 @@
 		95E23613A4A727417BE267A9 /* YouTubeLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeLinkTests.swift; sourceTree = "<group>"; };
 		A3DBB375A8652AC113696D9D /* MediaAssembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAssembler.swift; sourceTree = "<group>"; };
 		A4CB018047017645FDB67E08 /* DownloadQualityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadQualityTests.swift; sourceTree = "<group>"; };
+		A7FF1BF3049C99DE285A87D4 /* Build.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Build.xcconfig; sourceTree = "<group>"; };
 		A81ED0EE67E3672F2082AEE5 /* NativePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativePlayer.swift; sourceTree = "<group>"; };
 		AA8B6BFAEE51A769E75B6E8A /* MyTubeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MyTubeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF68AFD9E372D2E2AFA04619 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		B8BDABFBDC5885DD42B5FB17 /* BackgroundUpgradeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundUpgradeTests.swift; sourceTree = "<group>"; };
 		D605E98AF0930CA1DEA92B4A /* Fragmented1080.mp4 */ = {isa = PBXFileReference; path = Fragmented1080.mp4; sourceTree = "<group>"; };
 		EA2C0E403466D82BF7D45C7A /* LibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryTests.swift; sourceTree = "<group>"; };
 		EF55773DB713831962C8E110 /* Video1080.mp4 */ = {isa = PBXFileReference; path = Video1080.mp4; sourceTree = "<group>"; };
@@ -87,6 +88,7 @@
 			isa = PBXGroup;
 			children = (
 				F71230388F5DE83FDFA9032A /* Assets.xcassets */,
+				A7FF1BF3049C99DE285A87D4 /* Build.xcconfig */,
 				35353ABBDF863B20934F3358 /* ContinuedDownload.swift */,
 				8820FD5EB0707D01A3205B7F /* DownloadQuality.swift */,
 				1E3D94C7EFD2A1AC7B589711 /* Info.plist */,
@@ -96,7 +98,7 @@
 				393376DAB5155BE943E940EA /* MyTubeApp.swift */,
 				A81ED0EE67E3672F2082AEE5 /* NativePlayer.swift */,
 				AF68AFD9E372D2E2AFA04619 /* PrivacyInfo.xcprivacy */,
-				00FFCFD8C5D64A4DBA4D62AE /* SettingsView.swift */,
+				4BAB6835C4BA6144EAA0FC76 /* RemoteExtraction.swift */,
 				F75CBFBCF26CA80C991EFC28 /* YouTubeLink.swift */,
 			);
 			path = MyTube;
@@ -105,7 +107,7 @@
 		24C0EA7520B1DD18753A5192 /* MyTubeTests */ = {
 			isa = PBXGroup;
 			children = (
-				B8BDABFBDC5885DD42B5FB17 /* BackgroundUpgradeTests.swift */,
+				31F9F099A3B0013B68C58F7B /* BackgroundDownloadTests.swift */,
 				A4CB018047017645FDB67E08 /* DownloadQualityTests.swift */,
 				EA2C0E403466D82BF7D45C7A /* LibraryTests.swift */,
 				F7B3F92EF4A051F3E8C7FAEE /* MediaAssemblerTests.swift */,
@@ -261,7 +263,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6728A80C25A3DF1FF926DDD4 /* BackgroundUpgradeTests.swift in Sources */,
+				076B3AC43FEABE2DD8785AA4 /* BackgroundDownloadTests.swift in Sources */,
 				3A015CF7511709E2BA9A5E90 /* DownloadQualityTests.swift in Sources */,
 				0D41AF08285A611E338DBE89 /* LibraryTests.swift in Sources */,
 				27DE6A1181CB62F8D9146C26 /* MediaAssemblerTests.swift in Sources */,
@@ -280,7 +282,7 @@
 				474FA21E470B9C6D8D4EB038 /* MediaAssembler.swift in Sources */,
 				F8FB1401BC88859E3A9449AE /* MyTubeApp.swift in Sources */,
 				95B934831F901761EA66DF9A /* NativePlayer.swift in Sources */,
-				FAEDDA6B94FB8D912A045146 /* SettingsView.swift in Sources */,
+				22B142E9FA27F3E39FF2E6D5 /* RemoteExtraction.swift in Sources */,
 				F3D2C645373F254DDEB25677 /* YouTubeLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -330,7 +332,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -395,6 +397,7 @@
 		};
 		F718B925E2DBDEC06A2E6D36 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A7FF1BF3049C99DE285A87D4 /* Build.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -411,6 +414,7 @@
 		};
 		FA1995C880411E1A0B05B81F /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A7FF1BF3049C99DE285A87D4 /* Build.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -459,7 +463,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
