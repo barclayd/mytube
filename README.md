@@ -55,3 +55,5 @@ The personal build uses [the MyTube server fork](https://github.com/barclayd/You
 `MyTube/Build.xcconfig` optionally includes the ignored `MyTube/PrivateRemote.xcconfig`. Define `MYTUBE_REMOTE_URL` (write the scheme as `https:/$()/` in xcconfig) and `MYTUBE_REMOTE_TOKEN` there before building. The token authenticates only the WebSocket request to the private Worker; it is not forwarded to YouTube. A personal build embeds this token in its app bundle. Do not commit the private file or use this shared-token model for wider distribution.
 
 YouTubeKit’s vendored changes add remote request headers and stream titles, propagate remote errors, and keep local availability/metadata checks from blocking remote-only extraction.
+
+The [local token-provider trial](docs/token-provider-trial.md) records a successful 1080p download with yt-dlp and bgutil, including reproduction steps and the remaining backend integration work.
