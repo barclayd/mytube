@@ -5,8 +5,7 @@ options:
     iOS: '27.0'
 packages:
   YouTubeKit:
-    url: https://github.com/alexeichhorn/YouTubeKit
-    revision: 7f75a2299dc329c0b7855afb25d47663a02855cb
+    path: Vendor/YouTubeKit
 settings:
   base:
     SWIFT_VERSION: '6.0'

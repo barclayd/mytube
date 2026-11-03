@@ -20,7 +20,7 @@ xcodebuild -project MyTube.xcodeproj -scheme MyTube \
   -destination 'platform=iOS Simulator,name=MyTube Duo' test CODE_SIGNING_ALLOWED=NO
 ```
 
-YouTubeKit is pinned to a reviewed source revision in `project.yml` and `Package.resolved`.
+YouTubeKit is vendored at `Vendor/YouTubeKit` from revision `7f75a2299dc329c0b7855afb25d47663a02855cb`, with a JSON parsing fix for Unicode combining marks. See its `MYTUBE-PATCH.md` for the upstream source, patch and regression checks.
 
 ## Downloads
 

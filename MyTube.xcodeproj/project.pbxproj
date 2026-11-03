@@ -28,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0DE09DC94F4BACEEEA26FE94 /* YouTubeKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = YouTubeKit; path = Vendor/YouTubeKit; sourceTree = SOURCE_ROOT; };
 		1AFFE64C67FAE7CD2F7ECC5E /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		393376DAB5155BE943E940EA /* MyTubeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyTubeApp.swift; sourceTree = "<group>"; };
 		5F8A19F729B9BAC84D22FF0B /* MyTube.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MyTube.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -72,11 +73,20 @@
 			path = MyTubeTests;
 			sourceTree = "<group>";
 		};
+		86AD46CF26280D8552E4BD7E /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				0DE09DC94F4BACEEEA26FE94 /* YouTubeKit */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
 		991138524B714AFD03F755EA = {
 			isa = PBXGroup;
 			children = (
 				022AD62012CCA50D950A8B8E /* MyTube */,
 				24C0EA7520B1DD18753A5192 /* MyTubeTests */,
+				86AD46CF26280D8552E4BD7E /* Packages */,
 				F9E8B6572C6AD490A0C96E4A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -152,7 +162,7 @@
 			mainGroup = 991138524B714AFD03F755EA;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				B37814BE317F4DC44CAA4CCF /* XCRemoteSwiftPackageReference "YouTubeKit" */,
+				C66E4EEE2F95F240C501A44C /* XCLocalSwiftPackageReference "Vendor/YouTubeKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F9E8B6572C6AD490A0C96E4A /* Products */;
@@ -439,21 +449,16 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		B37814BE317F4DC44CAA4CCF /* XCRemoteSwiftPackageReference "YouTubeKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/alexeichhorn/YouTubeKit";
-			requirement = {
-				kind = revision;
-				revision = 7f75a2299dc329c0b7855afb25d47663a02855cb;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		C66E4EEE2F95F240C501A44C /* XCLocalSwiftPackageReference "Vendor/YouTubeKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Vendor/YouTubeKit;
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		1D2BAFACB889E37C20427CC1 /* YouTubeKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = B37814BE317F4DC44CAA4CCF /* XCRemoteSwiftPackageReference "YouTubeKit" */;
 			productName = YouTubeKit;
 		};
 /* End XCSwiftPackageProductDependency section */
