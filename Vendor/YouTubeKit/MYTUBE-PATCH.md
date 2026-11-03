@@ -2,6 +2,8 @@
 
 Source: https://github.com/alexeichhorn/YouTubeKit
 
+Upstream pull request: https://github.com/alexeichhorn/YouTubeKit/pull/151
+
 Upstream revision: `7f75a2299dc329c0b7855afb25d47663a02855cb`
 
 The upstream `Sources`, `Package.swift` and MIT `LICENSE` are preserved here, with one source change in `Extraction.findObjectFromStartpoint`. No extraction proxy or alternative backend is added.

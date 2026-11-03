@@ -7,12 +7,13 @@ import Testing
 private final class MediaFixtureBundle: NSObject {}
 
 @MainActor struct MediaAssemblerTests {
-  @Test(arguments: ["Video1080", "Fragmented1080", "Long1080"])
+  @Test(arguments: ["Video1080", "Fragmented1080", "Long1080", "Tail1080"])
   func combinesFullHDVideoWithAudibleAudioWithoutReducingResolution(_ filename: String) async throws
   {
     let bundle = Bundle(for: MediaFixtureBundle.self)
     let video = try #require(bundle.url(forResource: filename, withExtension: "mp4"))
-    let audio = try #require(bundle.url(forResource: "Audio", withExtension: "m4a"))
+    let audio = try #require(
+      bundle.url(forResource: filename == "Tail1080" ? "TailAudio" : "Audio", withExtension: "m4a"))
     let output = FileManager.default.temporaryDirectory.appendingPathComponent(
       "\(UUID().uuidString).mp4")
     defer { try? FileManager.default.removeItem(at: output) }

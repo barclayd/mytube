@@ -23,7 +23,10 @@ import AVFoundation
     let audioRange = try await sourceAudio.load(.timeRange)
     // Some YouTube DASH MP4s report a phantom empty video tail in AVFoundation.
     // Use the shared timeline so the result has audio for its entire duration.
-    let duration = CMTimeMinimum(videoRange.duration, audioRange.duration)
+    async let pictureDuration = payloadDuration(at: videoURL, mediaType: .video)
+    async let soundDuration = payloadDuration(at: audioURL, mediaType: .audio)
+    let (pictureEnd, soundEnd) = try await (pictureDuration, soundDuration)
+    let duration = CMTimeMinimum(pictureEnd, soundEnd)
     try videoTrack.insertTimeRange(
       CMTimeRange(start: videoRange.start, duration: duration), of: sourceVideo, at: .zero)
     try audioTrack.insertTimeRange(
@@ -39,6 +42,38 @@ import AVFoundation
     try Task.checkCancellation()
     try await export.export(to: output, as: .mp4)
     try Task.checkCancellation()
+  }
+
+  // Ignore empty edit-list markers. AVFoundation can include them in both DASH
+  // track durations, even when their last media samples end much earlier.
+  // Read compressed samples off the UI actor; this does not decode or re-encode.
+  private nonisolated static func payloadDuration(at url: URL, mediaType: AVMediaType) async throws
+    -> CMTime
+  {
+    let asset = AVURLAsset(url: url)
+    guard let track = try await asset.loadTracks(withMediaType: mediaType).first else {
+      throw MediaError.missingTracks
+    }
+    let range = try await track.load(.timeRange)
+    let reader = try AVAssetReader(asset: asset)
+    let output = AVAssetReaderTrackOutput(track: track, outputSettings: nil)
+    output.alwaysCopiesSampleData = false
+    reader.add(output)
+    guard reader.startReading() else { throw reader.error ?? MediaError.missingTracks }
+    defer { if reader.status == .reading { reader.cancelReading() } }
+    var end = CMTime.invalid
+    while let sample = output.copyNextSampleBuffer() {
+      try Task.checkCancellation()
+      guard CMSampleBufferGetTotalSampleSize(sample) > 0 else { continue }
+      let time = CMSampleBufferGetPresentationTimeStamp(sample)
+      let duration = CMSampleBufferGetDuration(sample)
+      guard time.isNumeric else { continue }
+      let sampleEnd = CMTimeAdd(time, duration.isNumeric ? duration : .zero)
+      end = end.isNumeric ? CMTimeMaximum(end, sampleEnd) : sampleEnd
+    }
+    if let error = reader.error { throw error }
+    guard end.isNumeric else { throw MediaError.missingTracks }
+    return CMTimeMinimum(range.duration, CMTimeSubtract(end, range.start))
   }
 
   enum MediaError: LocalizedError {

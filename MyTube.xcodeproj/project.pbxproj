@@ -16,6 +16,8 @@
 		43D32AC74F3223A58F3E038B /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = F52663A337430FB04AD31FA3 /* Library.swift */; };
 		474FA21E470B9C6D8D4EB038 /* MediaAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3DBB375A8652AC113696D9D /* MediaAssembler.swift */; };
 		5D50320707EFA5A89856D95C /* Long1080.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 8E07A3C4B2E424232A22BE33 /* Long1080.mp4 */; };
+		62D27714C1E7A5177F26E7A2 /* Tail1080.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 796C4FC7333B0B6B494B368C /* Tail1080.mp4 */; };
+		822F7370DF1805F19EC069F1 /* TailAudio.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 06F388643A1D7AA73A9A95E2 /* TailAudio.m4a */; };
 		8F02BEB577B8119D469A18E3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F71230388F5DE83FDFA9032A /* Assets.xcassets */; };
 		95B934831F901761EA66DF9A /* NativePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81ED0EE67E3672F2082AEE5 /* NativePlayer.swift */; };
 		B028E8C6CA62663F63A4C48F /* YouTubeKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1D2BAFACB889E37C20427CC1 /* YouTubeKit */; };
@@ -38,12 +40,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		06F388643A1D7AA73A9A95E2 /* TailAudio.m4a */ = {isa = PBXFileReference; path = TailAudio.m4a; sourceTree = "<group>"; };
 		0DE09DC94F4BACEEEA26FE94 /* YouTubeKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = YouTubeKit; path = Vendor/YouTubeKit; sourceTree = SOURCE_ROOT; };
 		1AFFE64C67FAE7CD2F7ECC5E /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		1D843417ED3E1AD01AE17918 /* Audio.m4a */ = {isa = PBXFileReference; path = Audio.m4a; sourceTree = "<group>"; };
 		1E3D94C7EFD2A1AC7B589711 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		393376DAB5155BE943E940EA /* MyTubeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyTubeApp.swift; sourceTree = "<group>"; };
 		5F8A19F729B9BAC84D22FF0B /* MyTube.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MyTube.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		796C4FC7333B0B6B494B368C /* Tail1080.mp4 */ = {isa = PBXFileReference; path = Tail1080.mp4; sourceTree = "<group>"; };
 		8820FD5EB0707D01A3205B7F /* DownloadQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadQuality.swift; sourceTree = "<group>"; };
 		8E07A3C4B2E424232A22BE33 /* Long1080.mp4 */ = {isa = PBXFileReference; path = Long1080.mp4; sourceTree = "<group>"; };
 		95E23613A4A727417BE267A9 /* YouTubeLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeLinkTests.swift; sourceTree = "<group>"; };
@@ -108,6 +112,8 @@
 				1D843417ED3E1AD01AE17918 /* Audio.m4a */,
 				D605E98AF0930CA1DEA92B4A /* Fragmented1080.mp4 */,
 				8E07A3C4B2E424232A22BE33 /* Long1080.mp4 */,
+				796C4FC7333B0B6B494B368C /* Tail1080.mp4 */,
+				06F388643A1D7AA73A9A95E2 /* TailAudio.m4a */,
 				EF55773DB713831962C8E110 /* Video1080.mp4 */,
 			);
 			path = Fixtures;
@@ -224,6 +230,8 @@
 				D0436D5FADB007455274EB8A /* Audio.m4a in Resources */,
 				D6D04AA44A223718F8C90440 /* Fragmented1080.mp4 in Resources */,
 				5D50320707EFA5A89856D95C /* Long1080.mp4 in Resources */,
+				62D27714C1E7A5177F26E7A2 /* Tail1080.mp4 in Resources */,
+				822F7370DF1805F19EC069F1 /* TailAudio.m4a in Resources */,
 				B4F7127975CBFAA9B0895589 /* Video1080.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
