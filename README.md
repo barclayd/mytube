@@ -2,7 +2,7 @@
 
 A minimal native YouTube download library for iOS 27, built with SwiftUI and [YouTubeKit](https://github.com/alexeichhorn/YouTubeKit).
 
-Tap the clipboard icon at the bottom right to immediately save a copied YouTube link. To enter or review a URL first, tap Add Video, paste a video or Shorts link, then tap Download Video. Select the saved video to play it offline. Swipe a download to delete it, or touch and hold to share its local MP4. Search appears once the library has content.
+Tap the clipboard icon above Search in the native Duo toolbar to immediately save a copied YouTube link. To enter or review a URL first, tap Add Video, paste a video or Shorts link, then tap Download Video. Select the saved video to play it offline. Swipe a download to delete it, or touch and hold to share its local MP4. Search appears once the library has content.
 
 ## Design
 

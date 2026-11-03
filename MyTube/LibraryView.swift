@@ -18,23 +18,6 @@ struct LibraryView: View {
 
   var body: some View {
     libraryNavigation
-      .safeAreaInset(edge: .bottom, spacing: 0) {
-        HStack {
-          Spacer()
-          Button(action: pasteAndDownload) {
-            Label("Paste & Download", systemImage: "document.on.clipboard")
-              .labelStyle(.iconOnly)
-              .font(.title3)
-              .frame(width: 44, height: 44)
-          }
-          .buttonStyle(.glass)
-          .buttonBorderShape(.circle)
-          .disabled(library.isDownloading)
-          .accessibilityIdentifier("paste-and-download")
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-      }
       .alert(
         "Unable to complete action",
         isPresented: Binding(
@@ -84,11 +67,17 @@ struct LibraryView: View {
         }
       }
       .navigationTitle("Downloads")
+      .searchable(text: $search, prompt: "Search downloads")
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
           Button("Add Video", systemImage: "plus") { showingAddVideo = true }
             .accessibilityIdentifier("add-video")
         }
+        ToolbarItem(placement: .bottomBar) {
+          pasteButton
+        }
+        .visibilityPriority(.high)
+        DefaultToolbarItem(kind: .search, placement: .bottomBar)
       }
       .safeAreaInset(edge: .bottom, spacing: 0) {
         if library.isDownloading { downloadStatus }
@@ -96,20 +85,35 @@ struct LibraryView: View {
       .navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 440)
 
     } detail: {
-      if let video = selectedVideo {
-        PlaybackView(video: video, url: library.url(for: video))
-      } else {
-        ContentUnavailableView {
-          Label("Select a Video", systemImage: "play.rectangle")
-        } description: {
-          Text("Choose a download to start watching.")
+      Group {
+        if let video = selectedVideo {
+          PlaybackView(video: video, url: library.url(for: video))
+        } else {
+          ContentUnavailableView {
+            Label("Select a Video", systemImage: "play.rectangle")
+          } description: {
+            Text("Choose a download to start watching.")
+          }
         }
+      }
+      .toolbar {
+        ToolbarItem(placement: .bottomBar) {
+          pasteButton
+        }
+        .visibilityPriority(.high)
       }
     }
     .navigationSplitViewStyle(.balanced)
     .animation(
       reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 1), value: library.isDownloading
     )
+  }
+
+  private var pasteButton: some View {
+    Button("Paste & Download", systemImage: "document.on.clipboard", action: pasteAndDownload)
+      .labelStyle(.iconOnly)
+      .disabled(library.isDownloading)
+      .accessibilityIdentifier("paste-and-download")
   }
 
   private func pasteAndDownload() {
@@ -164,7 +168,6 @@ struct LibraryView: View {
       }
     }
     .listStyle(.insetGrouped)
-    .searchable(text: $search, prompt: "Search downloads")
     .overlay {
       if visibleVideos.isEmpty { ContentUnavailableView.search(text: search) }
     }
