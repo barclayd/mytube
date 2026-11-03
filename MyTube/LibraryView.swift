@@ -12,6 +12,7 @@ struct LibraryView: View {
   @State private var search = ""
   @State private var pendingDeletion: SavedVideo?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   private var visibleVideos: [SavedVideo] {
     library.videos.filter { search.isEmpty || $0.title.localizedStandardContains(search) }
@@ -82,10 +83,12 @@ struct LibraryView: View {
           Button("Add Video", systemImage: "plus") { showingAddVideo = true }
             .accessibilityIdentifier("add-video")
         }
-        ToolbarItem(placement: .bottomBar) {
-          pasteButton
+        if horizontalSizeClass == .compact {
+          ToolbarItem(placement: .bottomBar) {
+            pasteButton
+          }
+          .visibilityPriority(.high)
         }
-        .visibilityPriority(.high)
         DefaultToolbarItem(kind: .search, placement: .bottomBar)
       }
       .safeAreaInset(edge: .bottom, spacing: 0) {
