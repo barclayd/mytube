@@ -6,7 +6,6 @@ struct LibraryView: View {
   @Bindable var library: Library
   @State private var playback = PlaybackSession()
   @State private var selection: SavedVideo.ID?
-  @State private var showingSettings = false
   @State private var showingAddVideo = false
   @State private var draftLink = ""
   @State private var search = ""
@@ -53,9 +52,6 @@ struct LibraryView: View {
       .onChange(of: library.videos.count) { old, new in
         if new > old { draftLink = "" }
       }
-      .sheet(isPresented: $showingSettings) {
-        SettingsView(library: library)
-      }
       .sheet(isPresented: $showingAddVideo) {
         AddVideoView(library: library, link: $draftLink)
           .presentationDetents([.height(500), .large])
@@ -75,10 +71,6 @@ struct LibraryView: View {
       .navigationTitle("Downloads")
       .searchable(text: $search, prompt: "Search downloads")
       .toolbar {
-        ToolbarItem(placement: .topBarLeading) {
-          Button("Settings", systemImage: "gearshape") { showingSettings = true }
-            .accessibilityIdentifier("settings")
-        }
         ToolbarItem(placement: .primaryAction) {
           Button("Add Video", systemImage: "plus") { showingAddVideo = true }
             .accessibilityIdentifier("add-video")
@@ -126,7 +118,7 @@ struct LibraryView: View {
   private var pasteButton: some View {
     Button("Paste & Download", systemImage: "document.on.clipboard", action: pasteAndDownload)
       .labelStyle(.iconOnly)
-      .disabled(library.isDownloading || library.isUpgrading)
+      .disabled(library.isDownloading)
       .accessibilityIdentifier("paste-and-download")
   }
 
@@ -216,6 +208,9 @@ struct LibraryView: View {
             ?? library.activityStatus
         )
         .font(.caption).foregroundStyle(.secondary)
+        if let notice = library.backgroundNotice {
+          Text(notice).font(.caption2).foregroundStyle(.secondary)
+        }
       }
       Spacer(minLength: 0)
       Button("Cancel Download", systemImage: "xmark") { library.cancel() }
@@ -286,7 +281,7 @@ private struct AddVideoView: View {
         }
         Section {
           Picker("Quality", selection: $library.preferredQuality) {
-            ForEach(DownloadQuality.allCases.filter { $0 != .maximum }) { quality in
+            ForEach(DownloadQuality.allCases) { quality in
               Text(quality.label).tag(quality)
             }
           }

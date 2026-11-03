@@ -11,9 +11,11 @@ import Foundation
 class RemoteYouTubeClient {
     
     let serverURL: URL
+    let headers: [String: String]
     
-    init(serverURL: URL) {
+    init(serverURL: URL, headers: [String: String] = [:]) {
         self.serverURL = serverURL
+        self.headers = headers
     }
     
     func extractStreams(forVideoID videoID: String) async throws -> [RemoteStream] {
@@ -24,6 +26,7 @@ class RemoteYouTubeClient {
         ]
 
         var websocketRequest = URLRequest(url: urlComponents.url!)
+        for (name, value) in headers { websocketRequest.setValue(value, forHTTPHeaderField: name) }
 
         // Add app identity header if available
         if let appIdentity = AppIdentity.getCurrent() {
@@ -32,110 +35,123 @@ class RemoteYouTubeClient {
 
         let task = URLSession.shared.webSocketTask(with: websocketRequest)
         task.resume()
-        
-        defer {
-            task.cancel()
-        }
-        
-        struct RemoteURLRequest: Decodable {
-            let id: String
-            let url: URL
-            let method: String
-            let body: Data?
-            let headers: [String: String]
-            let allowRedirects: Bool
-            let applyCookiesOnRedirect: Bool
-            let saveIntermediateResponses: Bool
-            
-            let maxMessageChunkSize: Int?
-            
-            var urlRequest: URLRequest {
-                var request = URLRequest(url: url)
-                request.httpMethod = method
-                for (key, value) in headers {
-                    request.setValue(value, forHTTPHeaderField: key)
-                }
-                if let body = body {
-                    request.httpBody = body
-                }
-                request.httpShouldHandleCookies = false
-                return request
+        return try await withTaskCancellationHandler {
+            defer {
+                task.cancel()
             }
-        }
         
-        struct RemoteURLResponse: Encodable {
-            let id: String
-            let url: URL?
-            let data: Data
-            let statusCode: Int?
-            let headers: [String: String]
-            var intermediates: [RemoteURLResponse]?
+            struct RemoteURLRequest: Decodable {
+                let id: String
+                let url: URL
+                let method: String
+                let body: Data?
+                let headers: [String: String]
+                let allowRedirects: Bool
+                let applyCookiesOnRedirect: Bool
+                let saveIntermediateResponses: Bool
             
-            init(id: String, data: Data, response: URLResponse) {
-                self.id = id
-                self.url = response.url
-                self.data = data
-                let httpResponse = response as? HTTPURLResponse
-                self.statusCode = httpResponse?.statusCode
-                
-                var headers = [String: String]()
-                for (key, value) in httpResponse?.allHeaderFields ?? [:] {
-                    guard let key = key as? String, let value = value as? String else { continue }
-                    headers[key] = value
-                }
-                self.headers = headers
-            }
-        }
-        
-        enum ServerMessageType: String, Decodable {
-            case urlRequest, result
-        }
-        
-        struct ServerMessageBase: Decodable {
-            let type: ServerMessageType
-        }
-        
-        struct ServerMessage<Content: Decodable>: Decodable {
-            let type: ServerMessageType
-            let content: Content
-        }
-        
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        
-        let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        
-        while true {
-            let message = try await task.receive()
-            let messageType = try decoder.decode(ServerMessageBase.self, from: message).type
+                let maxMessageChunkSize: Int?
             
-            switch messageType {
-            case .result:
-                let serverMessage = try decoder.decode(ServerMessage<[RemoteStream]>.self, from: message)
-                return serverMessage.content
-                
-            case .urlRequest:
-                let serverMessage = try decoder.decode(ServerMessage<RemoteURLRequest>.self, from: message)
-                let request = serverMessage.content
-                
-                if !request.allowRedirects || request.applyCookiesOnRedirect {
-                    let configuration = URLSessionConfiguration.default
-                    let delegate = ConfigurableURLSessionDelegate(allowsRedirect: request.allowRedirects, applyCookiesOnRedirect: request.applyCookiesOnRedirect, saveIntermediateResponses: request.saveIntermediateResponses)
-                    let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
-                    let (data, response) = try await session.data(for: request.urlRequest)
-                    
-                    var remoteResponse = RemoteURLResponse(id: request.id, data: data, response: response)
-                    if request.saveIntermediateResponses {
-                        remoteResponse.intermediates = delegate.intermediateResponses.map { RemoteURLResponse(id: request.id, data: Data(), response: $0) }
+                var urlRequest: URLRequest {
+                    var request = URLRequest(url: url)
+                    request.httpMethod = method
+                    for (key, value) in headers {
+                        request.setValue(value, forHTTPHeaderField: key)
                     }
-                    try await task.send(remoteResponse, maxChunkSize: request.maxMessageChunkSize, encoder: encoder)
-                } else {
-                    let (data, response) = try await URLSession.shared.data(for: request.urlRequest)
-                    try await task.send(RemoteURLResponse(id: request.id, data: data, response: response), maxChunkSize: request.maxMessageChunkSize, encoder: encoder)
+                    if let body = body {
+                        request.httpBody = body
+                    }
+                    request.httpShouldHandleCookies = false
+                    return request
                 }
             }
+        
+            struct RemoteURLResponse: Encodable {
+                let id: String
+                let url: URL?
+                let data: Data
+                let statusCode: Int?
+                let headers: [String: String]
+                var intermediates: [RemoteURLResponse]?
+            
+                init(id: String, data: Data, response: URLResponse) {
+                    self.id = id
+                    self.url = response.url
+                    self.data = data
+                    let httpResponse = response as? HTTPURLResponse
+                    self.statusCode = httpResponse?.statusCode
+                
+                    var headers = [String: String]()
+                    for (key, value) in httpResponse?.allHeaderFields ?? [:] {
+                        guard let key = key as? String, let value = value as? String else { continue }
+                        headers[key] = value
+                    }
+                    self.headers = headers
+                }
+            }
+        
+            enum ServerMessageType: String, Decodable {
+                case urlRequest, result, error
+            }
+        
+            struct ServerMessageBase: Decodable {
+                let type: ServerMessageType
+            }
+        
+            struct ServerMessage<Content: Decodable>: Decodable {
+                let type: ServerMessageType
+                let content: Content
+            }
+        
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+        
+            let encoder = JSONEncoder()
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+        
+            while true {
+                let message = try await task.receive()
+                let messageType = try decoder.decode(ServerMessageBase.self, from: message).type
+            
+                switch messageType {
+                case .error:
+                    struct FailureMessage: Decodable { let message: String }
+                    let failure = try decoder.decode(FailureMessage.self, from: message)
+                    if failure.message.lowercased().contains("not a bot") { throw YouTubeKitError.requestBlocked }
+                    throw RemoteExtractionError(message: failure.message)
+                case .result:
+                    let serverMessage = try decoder.decode(ServerMessage<[RemoteStream]>.self, from: message)
+                    return serverMessage.content
+                
+                case .urlRequest:
+                    let serverMessage = try decoder.decode(ServerMessage<RemoteURLRequest>.self, from: message)
+                    let request = serverMessage.content
+                
+                    if !request.allowRedirects || request.applyCookiesOnRedirect {
+                        let configuration = URLSessionConfiguration.default
+                        let delegate = ConfigurableURLSessionDelegate(allowsRedirect: request.allowRedirects, applyCookiesOnRedirect: request.applyCookiesOnRedirect, saveIntermediateResponses: request.saveIntermediateResponses)
+                        let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+                        let (data, response) = try await session.data(for: request.urlRequest)
+                    
+                        var remoteResponse = RemoteURLResponse(id: request.id, data: data, response: response)
+                        if request.saveIntermediateResponses {
+                            remoteResponse.intermediates = delegate.intermediateResponses.map { RemoteURLResponse(id: request.id, data: Data(), response: $0) }
+                        }
+                        try await task.send(remoteResponse, maxChunkSize: request.maxMessageChunkSize, encoder: encoder)
+                    } else {
+                        let (data, response) = try await URLSession.shared.data(for: request.urlRequest)
+                        try await task.send(RemoteURLResponse(id: request.id, data: data, response: response), maxChunkSize: request.maxMessageChunkSize, encoder: encoder)
+                    }
+                }
+            }
+        } onCancel: {
+            task.cancel(with: .goingAway, reason: nil)
         }
     }
     
+}
+
+private struct RemoteExtractionError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
 }

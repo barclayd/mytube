@@ -4,3 +4,6 @@ build/
 DerivedData/
 *.xcuserstate
 xcuserdata/
+
+# Personal extractor credentials
+MyTube/PrivateRemote.xcconfig

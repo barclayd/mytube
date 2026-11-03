@@ -69,14 +69,16 @@ public class YouTube {
     let allowOAuthCache: Bool
     
     let methods: [ExtractionMethod]
+    let remoteHeaders: [String: String]
     
     private let log = OSLog(YouTube.self)
     
     /// - parameter methods: Methods used to extract streams from the video - ordered by priority (Default: `local` on iOS, macOS, tvOS, visionOS; `remote` on watchOS)
-    public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = .default) {
+    public init(videoID: String, proxies: [String: URL] = [:], useOAuth: Bool = false, allowOAuthCache: Bool = false, methods: [ExtractionMethod] = .default, remoteHeaders: [String: String] = [:]) {
         self.videoID = videoID
         self.useOAuth = useOAuth
         self.allowOAuthCache = allowOAuthCache
+        self.remoteHeaders = remoteHeaders
         // TODO: install proxies if needed
         
         if methods.isEmpty {
@@ -229,7 +231,6 @@ public class YouTube {
     /// If the streams have not been initialized, finds all relevant streams and initializes them.
     public var streams: [Stream] {
         get async throws {
-            try await checkAvailability()
             if let cached = _fmtStreams {
                 return cached
             }
@@ -238,6 +239,7 @@ public class YouTube {
                 switch method {
 #if canImport(JavaScriptCore)
                 case .local:
+                    try await checkAvailability()
                     // loads fallback clients if the default ones returned no streaming data
                     _ = try await self.streamingData
                     let videoInfos = try await self.videoInfos
@@ -264,7 +266,7 @@ public class YouTube {
                         // filter out dubbed audio tracks
                         streamManifest = Extraction.filterOutDubbedAudio(streamManifest: streamManifest)
                         
-                        let newStreams = streamManifest.compactMap { try? Stream(format: $0, availableAt: videoInfo.streamsAvailableAt) }
+                        let newStreams = streamManifest.compactMap { try? Stream(format: $0, availableAt: videoInfo.streamsAvailableAt, videoTitle: videoInfo.videoDetails?.title) }
                         
                         // make sure only one stream per itag exists
                         for stream in newStreams {
@@ -290,7 +292,7 @@ public class YouTube {
 #endif
                     
                 case .remote(let serverURL):
-                    let remoteClient = RemoteYouTubeClient(serverURL: serverURL)
+                    let remoteClient = RemoteYouTubeClient(serverURL: serverURL, headers: remoteHeaders)
                     let remoteStreams = try await remoteClient.extractStreams(forVideoID: videoID)
                     
                     return remoteStreams.compactMap { try? Stream(remoteStream: $0) }
@@ -393,6 +395,7 @@ public class YouTube {
             }
             
             // remove video infos with incorrect videoID
+            try Extraction.checkForRequestBlock(videoID: videoID, responses: videoInfos)
             for (i, videoInfo) in videoInfos.enumerated() where videoInfo.videoDetails?.videoId != videoID {
                 os_log("Skipping player response from client %{public}i. Got player response for %{public}@ instead of %{public}@", log: log, type: .info, i, videoInfo.videoDetails?.videoId ?? "nil", videoID)
             }

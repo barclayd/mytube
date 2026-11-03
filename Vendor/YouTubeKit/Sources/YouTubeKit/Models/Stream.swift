@@ -12,6 +12,8 @@ public struct Stream: Sendable {
     
     public let url: URL
     public let itag: ITag
+    /// Optional title supplied by a remote extractor when local metadata is unavailable.
+    public let videoTitle: String?
     public let videoCodec: VideoCodec?
     public let audioCodec: AudioCodec?
     
@@ -35,7 +37,7 @@ public struct Stream: Sendable {
     /// so call `waitUntilAvailable()` before requesting `url` yourself.
     public let availableAt: Date
     
-    init(format: InnerTube.StreamingData.Format, availableAt: Date) throws {
+    init(format: InnerTube.StreamingData.Format, availableAt: Date, videoTitle: String? = nil) throws {
         guard let url = format.url.flatMap({ URL(string: $0) }),
               let itag = ITag(format.itag) else {
             throw YouTubeKitError.extractError
@@ -43,6 +45,7 @@ public struct Stream: Sendable {
         
         self.url = url
         self.itag = itag
+        self.videoTitle = videoTitle
         
         let codecs: [String]
         (self.mimeType, codecs) = try Extraction.mimeTypeCodec(format.mimeType)
@@ -83,6 +86,7 @@ public struct Stream: Sendable {
         self.url = remoteStream.url
         self.itag = itag
         self.videoCodec = remoteStream.videoCodec.map { VideoCodec(rawValue: $0) }
+        self.videoTitle = remoteStream.videoTitle
         self.audioCodec = remoteStream.audioCodec.map { AudioCodec(rawValue: $0) }
         
         if self.videoCodec == nil && self.audioCodec == nil {

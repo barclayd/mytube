@@ -57,7 +57,7 @@ private final class DownloadProgress: NSObject, URLSessionDownloadDelegate, Send
 final class Library {
   private(set) var videos: [SavedVideo] = []
   private(set) var isDownloading = false
-  private(set) var progress: Double?
+  private(set) var progress: Double? { didSet { reportBackgroundProgress() } }
   private(set) var activityTitle = "Preparing video…"
   private(set) var activityStatus = "Finding video…"
   var preferredQuality: DownloadQuality = .fullHD {
@@ -65,22 +65,34 @@ final class Library {
   }
   var errorMessage: String?
   private var task: Task<Void, Never>?
-  private var upgradeTask: Task<Void, Never>?
-  private(set) var isUpgrading = false
-  private(set) var upgradeIndex = 0
-  private(set) var upgradeTotal = 0
-  private(set) var upgradeSummary: String?
-  private var upgradeFailures = 0
+  private(set) var backgroundNotice: String?
+  @ObservationIgnored private let backgroundWork: any DownloadBackgroundWork
+  @ObservationIgnored private let resolve:
+    @Sendable (String, DownloadQuality) async throws -> (String, VideoStreamPlan)
+  private var phaseStart = 0.0
+  private var phaseWeight = 0.0
   private let directory: URL
   private var index: URL { directory.appendingPathComponent("library.json") }
 
-  init(directory: URL? = nil) {
+  init(
+    directory: URL? = nil,
+    backgroundWork: (any DownloadBackgroundWork)? = nil,
+    resolve:
+      @escaping @Sendable (String, DownloadQuality) async throws -> (String, VideoStreamPlan) = {
+        try await VideoResolver.resolve($0, quality: $1)
+      }
+  ) {
+    self.backgroundWork = backgroundWork ?? ContinuedDownload.shared
+    self.resolve = resolve
     preferredQuality =
       DownloadQuality(rawValue: UserDefaults.standard.integer(forKey: "downloadQuality")) ?? .fullHD
     self.directory =
       directory ?? URL.documentsDirectory.appendingPathComponent("Videos", isDirectory: true)
     do {
       try FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true)
+      try FileManager.default.setAttributes(
+        [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+        ofItemAtPath: self.directory.path)
       if FileManager.default.fileExists(atPath: index.path) {
         videos = try JSONDecoder().decode([SavedVideo].self, from: Data(contentsOf: index))
           .filter {
@@ -88,6 +100,9 @@ final class Library {
               atPath: self.directory.appendingPathComponent($0.filename).path)
           }
       }
+      // Retire the old batch queue without touching any saved media.
+      try? FileManager.default.removeItem(
+        at: self.directory.appendingPathComponent("upgrades.json"))
       // Keep large, redownloadable media out of iCloud device backups.
       var folder = self.directory
       var values = URLResourceValues()
@@ -102,29 +117,22 @@ final class Library {
   }
 
   func download(_ link: YouTubeLink) {
-    guard !isUpgrading else { return }
-    startDownload(link, quality: preferredQuality)
-  }
-
-  private func startDownload(_ link: YouTubeLink, quality: DownloadQuality, quietly: Bool = false) {
+    let quality = preferredQuality
     guard !isDownloading else { return }
-    if let existing = videos.first(where: { $0.id == link.videoID }),
-      existing.resolution >= quality.rawValue
-    {
-      errorMessage = "A download at this quality or better is already in your library."
+    if videos.contains(where: { $0.id == link.videoID }) {
+      errorMessage = "This video is already in your downloads."
       return
     }
     isDownloading = true
     progress = nil
     activityTitle = "Preparing video…"
-    activityStatus = "Finding video…"
+    setPhase("Finding video…", start: 0, weight: 0)
     task = Task { [self] in
-      let background = UIApplication.shared.beginBackgroundTask(withName: "Save video") {
-        [weak library = self] in
-        Task { @MainActor in library?.cancel() }
-      }
+      var fallback = UIBackgroundTaskIdentifier.invalid
+      var succeeded = false
       defer {
-        if background != .invalid { UIApplication.shared.endBackgroundTask(background) }
+        backgroundWork.finish(success: succeeded && !Task.isCancelled)
+        if fallback != .invalid { UIApplication.shared.endBackgroundTask(fallback) }
         isDownloading = false
         progress = nil
         task = nil
@@ -134,38 +142,30 @@ final class Library {
         UUID().uuidString, isDirectory: true)
       defer { try? FileManager.default.removeItem(at: workspace) }
       do {
-        try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
-        let (title, plan) = try await VideoResolver.resolve(link.videoID, quality: quality)
+        fallback = try await beginBackgroundWork(title: "Downloading Video")
+        try Task.checkCancellation()
+        try FileManager.default.createDirectory(
+          at: workspace, withIntermediateDirectories: true,
+          attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication])
+        let (title, plan) = try await resolve(link.videoID, quality)
         activityTitle = title
-        if let existing = videos.first(where: { $0.id == link.videoID }),
-          existing.resolution >= plan.resolution
-        {
-          if !quietly {
-            errorMessage =
-              "The saved video is already at the best available quality for this selection."
-          }
-          return
-        }
-        activityStatus = "Downloading video · \(plan.resolution)p"
+        setPhase("Downloading video · \(plan.resolution)p", start: 0.02, weight: 0.8)
         let videoFile = workspace.appendingPathComponent("video.mp4")
         try await transfer(plan.video, to: videoFile)
         let destination = directory.appendingPathComponent(
           "\(link.videoID)-\(UUID().uuidString).mp4")
         createdFiles.append(destination)
         if let audio = plan.audio {
-          activityStatus = "Downloading audio"
-          progress = nil
+          setPhase("Downloading audio", start: 0.82, weight: 0.1)
           let audioFile = workspace.appendingPathComponent("audio.m4a")
           try await transfer(audio, to: audioFile)
-          activityStatus = "Combining video and audio…"
-          progress = nil
+          setPhase("Combining video and audio…", start: 0.92, weight: 0)
           try await MediaAssembler.combine(video: videoFile, audio: audioFile, output: destination)
         } else {
           try FileManager.default.moveItem(at: videoFile, to: destination)
         }
         try Task.checkCancellation()
-        activityStatus = "Saving video…"
-        progress = nil
+        setPhase("Saving video…", start: 0.98, weight: 0)
         let asset = AVURLAsset(url: destination)
         guard try await asset.load(.isPlayable) else { throw DownloadError.invalidMedia }
         let duration = try await asset.load(.duration).seconds
@@ -184,7 +184,8 @@ final class Library {
         {
           let filename = "\(link.videoID)-\(UUID().uuidString).jpg"
           let file = directory.appendingPathComponent(filename)
-          try data.write(to: file, options: .atomic)
+          try data.write(
+            to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
           createdFiles.append(file)
           thumbnailFilename = filename
         }
@@ -195,25 +196,14 @@ final class Library {
           thumbnailFilename: thumbnailFilename, savedAt: .now,
           bytes: Int64(bytes), duration: duration, resolution: plan.resolution,
           pixelWidth: Int(abs(dimensions.width)), pixelHeight: Int(abs(dimensions.height)))
-        let oldVersion = videos.first { $0.id == video.id }
-        let updated = [video] + videos.filter { $0.id != video.id }
+        let updated = [video] + videos
         try persist(updated)
         videos = updated
-        // Keep the old download intact until the upgraded file and index are safely stored.
-        if let oldVersion {
-          try? FileManager.default.removeItem(at: url(for: oldVersion))
-          if let image = thumbnail(for: oldVersion) {
-            try? FileManager.default.removeItem(at: image)
-          }
-        }
+        succeeded = true
       } catch {
         for file in createdFiles { try? FileManager.default.removeItem(at: file) }
         if !Task.isCancelled {
-          if quietly {
-            upgradeFailures += 1
-          } else {
-            errorMessage = "Couldn’t download this video. \(error.localizedDescription)"
-          }
+          errorMessage = "Couldn’t download this video. \(error.localizedDescription)"
         }
       }
     }
@@ -235,49 +225,41 @@ final class Library {
     }
     try Task.checkCancellation()
     try FileManager.default.moveItem(at: temporary, to: destination)
+    try FileManager.default.setAttributes(
+      [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+      ofItemAtPath: destination.path)
   }
 
-  func cancel() {
-    upgradeTask?.cancel()
-    task?.cancel()
-  }
-
-  func upgradeAllToMaximumQuality() {
-    guard !isDownloading, !isUpgrading, !videos.isEmpty else { return }
-    let snapshot = videos
-    isUpgrading = true
-    upgradeIndex = 0
-    upgradeTotal = snapshot.count
-    upgradeFailures = 0
-    upgradeSummary = nil
-    upgradeTask = Task { [self] in
-      var upgraded = 0
-      var alreadyAtMaximum = 0
-      defer {
-        isUpgrading = false
-        upgradeTask = nil
-        upgradeSummary =
-          "\(Task.isCancelled ? "Stopped. " : "Finished. ")\(upgraded) upgraded, \(alreadyAtMaximum) already at maximum, \(upgradeFailures) failed."
-      }
-      for (index, video) in snapshot.enumerated() {
-        if Task.isCancelled { break }
-        upgradeIndex = index + 1
-        guard videos.contains(where: { $0.id == video.id }),
-          let link = YouTubeLink("https://youtu.be/\(video.id)")
-        else { continue }
-        let failuresBefore = upgradeFailures
-        startDownload(link, quality: .maximum, quietly: true)
-        await task?.value
-        if let current = videos.first(where: { $0.id == video.id }) {
-          if current.filename != video.filename {
-            upgraded += 1
-          } else if !Task.isCancelled && upgradeFailures == failuresBefore {
-            alreadyAtMaximum += 1
-          }
-        }
+  private func beginBackgroundWork(title: String) async throws -> UIBackgroundTaskIdentifier {
+    backgroundNotice = "Requesting background access…"
+    do {
+      try await backgroundWork.begin(title: title) { [weak self] in self?.cancel() }
+      backgroundNotice = "You can lock your screen while this runs."
+      reportBackgroundProgress()
+      return .invalid
+    } catch {
+      try Task.checkCancellation()
+      // A denied request must not silently promise locked-screen execution.
+      backgroundNotice = "Keep MyTube open. iOS couldn’t allow background processing right now."
+      return UIApplication.shared.beginBackgroundTask(withName: title) { [weak self] in
+        Task { @MainActor in self?.cancel() }
       }
     }
   }
+
+  private func setPhase(_ status: String, start: Double, weight: Double) {
+    activityStatus = status
+    phaseStart = start
+    phaseWeight = weight
+    progress = nil
+  }
+
+  private func reportBackgroundProgress() {
+    let fraction = phaseStart + (progress ?? 0) * phaseWeight
+    backgroundWork.report(completed: Int64(fraction * 1000), total: 1000, subtitle: activityStatus)
+  }
+
+  func cancel() { task?.cancel() }
 
   func delete(_ video: SavedVideo) {
     do {
@@ -292,7 +274,8 @@ final class Library {
   }
 
   private func persist(_ videos: [SavedVideo]) throws {
-    try JSONEncoder().encode(videos).write(to: index, options: .atomic)
+    try JSONEncoder().encode(videos).write(
+      to: index, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
   }
 }
 
@@ -319,9 +302,13 @@ private enum VideoResolver {
   static func resolve(_ videoID: String, quality: DownloadQuality) async throws -> (
     String, VideoStreamPlan
   ) {
-    let youtube = YouTube(videoID: videoID, methods: [.local])
-    let metadata = try await youtube.metadata
+    let remote = RemoteExtractionConfiguration()
+    let youtube = YouTube(
+      videoID: videoID, methods: remote?.methods ?? [.local, .remote],
+      remoteHeaders: remote?.headers ?? [:])
+    // A local metadata failure must not prevent remote extraction.
     let streams = try await youtube.streams
+    let title = streams.compactMap(\.videoTitle).first ?? "YouTube video"
     let candidates = streams.filter {
       $0.includesVideoTrack && $0.isNativelyPlayable && $0.fileExtension == .mp4
     }
@@ -347,7 +334,7 @@ private enum VideoResolver {
       else { throw DownloadError.noStream }
       audio = track
     }
-    return (metadata?.title ?? "YouTube video", VideoStreamPlan(video: video, audio: audio))
+    return (title, VideoStreamPlan(video: video, audio: audio))
   }
 
   private static func isAVC(_ stream: YouTubeKit.Stream) -> Bool {
