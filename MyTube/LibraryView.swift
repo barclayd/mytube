@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct LibraryView: View {
   @Bindable var library: Library
+  @State private var playback = PlaybackSession()
   @State private var selection: SavedVideo.ID?
   @State private var showingAddVideo = false
   @State private var draftLink = ""
@@ -52,7 +53,7 @@ struct LibraryView: View {
       }
       .sheet(isPresented: $showingAddVideo) {
         AddVideoView(library: library, link: $draftLink)
-          .presentationDetents([.height(420), .large])
+          .presentationDetents([.height(500), .large])
           .presentationDragIndicator(.visible)
       }
   }
@@ -87,7 +88,9 @@ struct LibraryView: View {
     } detail: {
       Group {
         if let video = selectedVideo {
-          PlaybackView(video: video, url: library.url(for: video))
+          PlaybackView(video: video, url: library.url(for: video), session: playback) {
+            selection = video.id
+          }
         } else {
           ContentUnavailableView {
             Label("Select a Video", systemImage: "play.rectangle")
@@ -197,8 +200,11 @@ struct LibraryView: View {
       .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: 4) {
         Text(library.activityTitle).font(.subheadline.weight(.semibold)).lineLimit(1)
-        Text(library.progress.map { "Downloading · \(Int($0 * 100))%" } ?? "Preparing download…")
-          .font(.caption).foregroundStyle(.secondary)
+        Text(
+          library.progress.map { "\(library.activityStatus) · \(Int($0 * 100))%" }
+            ?? library.activityStatus
+        )
+        .font(.caption).foregroundStyle(.secondary)
       }
       Spacer(minLength: 0)
       Button("Cancel Download", systemImage: "xmark") { library.cancel() }
@@ -267,6 +273,18 @@ private struct AddVideoView: View {
             Text("Paste a YouTube video or Shorts link. The video will be saved on this device.")
           }
         }
+        Section {
+          Picker("Quality", selection: $library.preferredQuality) {
+            ForEach(DownloadQuality.allCases) { quality in
+              Text(quality.label).tag(quality)
+            }
+          }
+          .accessibilityIdentifier("download-quality")
+        } footer: {
+          Text(
+            "Uses the highest available resolution up to your choice. Higher quality needs more storage. Paste & Download uses this setting too."
+          )
+        }
       }
       .scrollDismissesKeyboard(.interactively)
       .navigationTitle("Add Video")
@@ -330,7 +348,7 @@ private struct VideoRow: View {
       .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: 6) {
         Text(video.title).font(.body.weight(.medium)).lineLimit(2)
-        Text(video.subtitle).font(.caption).foregroundStyle(.secondary)
+        Text("\(video.subtitle) · \(video.qualityLabel)").font(.caption).foregroundStyle(.secondary)
       }
       Spacer(minLength: 0)
     }
@@ -344,19 +362,37 @@ private struct VideoRow: View {
 struct PlaybackView: View {
   let video: SavedVideo
   let url: URL
-  @State private var player: AVPlayer?
+  let session: PlaybackSession
+  var onRestore: () -> Void
+  @State private var showingFullScreen = false
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 20) {
-        VideoPlayer(player: player)
-          .aspectRatio(16 / 9, contentMode: .fit)
-          .clipShape(.rect(cornerRadius: 18))
+        Group {
+          if showingFullScreen {
+            Color.black
+          } else {
+            NativePlayer(session: session, onRestore: onRestore)
+          }
+        }
+        .aspectRatio(16 / 9, contentMode: .fit)
+        .clipShape(.rect(cornerRadius: 18))
         VStack(alignment: .leading, spacing: 8) {
           Text(video.title).font(.title3.weight(.semibold))
-          Text(video.subtitle).foregroundStyle(.secondary)
+          Text("\(video.subtitle) · \(video.qualityLabel)").foregroundStyle(.secondary)
+          if let dimensions = video.dimensionsLabel {
+            Text(dimensions).font(.caption).foregroundStyle(.secondary)
+          }
           Label("Available offline", systemImage: "checkmark.circle.fill")
             .font(.footnote).foregroundStyle(.secondary)
         }
+        Button("Full Screen", systemImage: "arrow.up.left.and.arrow.down.right") {
+          showingFullScreen = true
+        }
+        .buttonStyle(.glass)
+        .controlSize(.large)
+        .accessibilityIdentifier("full-screen-video")
       }
       .padding(20)
       .frame(maxWidth: 1000)
@@ -368,11 +404,24 @@ struct PlaybackView: View {
     .toolbar {
       ShareLink(item: url) { Label("Share Video", systemImage: "square.and.arrow.up") }
     }
-    .task(id: video.id) {
-      player?.pause()
-      player = AVPlayer(url: url)
-      try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+    .task(id: video.filename) { session.open(video, url: url) }
+    .onDisappear {
+      if !showingFullScreen && !session.isPictureInPictureActive { session.player.pause() }
     }
-    .onDisappear { player?.pause() }
+    .fullScreenCover(isPresented: $showingFullScreen) {
+      NativePlayer(session: session) {
+        onRestore()
+        showingFullScreen = true
+      }
+      .ignoresSafeArea()
+      .background(.black)
+      .overlay(alignment: .topLeading) {
+        Button("Close Full Screen", systemImage: "xmark") { showingFullScreen = false }
+          .labelStyle(.iconOnly)
+          .buttonStyle(.glass)
+          .buttonBorderShape(.circle)
+          .padding(20)
+      }
+    }
   }
 }
