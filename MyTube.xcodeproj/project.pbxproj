@@ -27,6 +27,7 @@
 		D6D04AA44A223718F8C90440 /* Fragmented1080.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = D605E98AF0930CA1DEA92B4A /* Fragmented1080.mp4 */; };
 		F3D2C645373F254DDEB25677 /* YouTubeLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75CBFBCF26CA80C991EFC28 /* YouTubeLink.swift */; };
 		F8FB1401BC88859E3A9449AE /* MyTubeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 393376DAB5155BE943E940EA /* MyTubeApp.swift */; };
+		FAEDDA6B94FB8D912A045146 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FFCFD8C5D64A4DBA4D62AE /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +41,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		00FFCFD8C5D64A4DBA4D62AE /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		06F388643A1D7AA73A9A95E2 /* TailAudio.m4a */ = {isa = PBXFileReference; path = TailAudio.m4a; sourceTree = "<group>"; };
 		0DE09DC94F4BACEEEA26FE94 /* YouTubeKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = YouTubeKit; path = Vendor/YouTubeKit; sourceTree = SOURCE_ROOT; };
 		1AFFE64C67FAE7CD2F7ECC5E /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
@@ -89,6 +91,7 @@
 				393376DAB5155BE943E940EA /* MyTubeApp.swift */,
 				A81ED0EE67E3672F2082AEE5 /* NativePlayer.swift */,
 				AF68AFD9E372D2E2AFA04619 /* PrivacyInfo.xcprivacy */,
+				00FFCFD8C5D64A4DBA4D62AE /* SettingsView.swift */,
 				F75CBFBCF26CA80C991EFC28 /* YouTubeLink.swift */,
 			);
 			path = MyTube;
@@ -269,6 +272,7 @@
 				474FA21E470B9C6D8D4EB038 /* MediaAssembler.swift in Sources */,
 				F8FB1401BC88859E3A9449AE /* MyTubeApp.swift in Sources */,
 				95B934831F901761EA66DF9A /* NativePlayer.swift in Sources */,
+				FAEDDA6B94FB8D912A045146 /* SettingsView.swift in Sources */,
 				F3D2C645373F254DDEB25677 /* YouTubeLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -6,11 +6,13 @@ struct LibraryView: View {
   @Bindable var library: Library
   @State private var playback = PlaybackSession()
   @State private var selection: SavedVideo.ID?
+  @State private var showingSettings = false
   @State private var showingAddVideo = false
   @State private var draftLink = ""
   @State private var search = ""
   @State private var pendingDeletion: SavedVideo?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   private var visibleVideos: [SavedVideo] {
     library.videos.filter { search.isEmpty || $0.title.localizedStandardContains(search) }
@@ -51,6 +53,9 @@ struct LibraryView: View {
       .onChange(of: library.videos.count) { old, new in
         if new > old { draftLink = "" }
       }
+      .sheet(isPresented: $showingSettings) {
+        SettingsView(library: library)
+      }
       .sheet(isPresented: $showingAddVideo) {
         AddVideoView(library: library, link: $draftLink)
           .presentationDetents([.height(500), .large])
@@ -70,14 +75,20 @@ struct LibraryView: View {
       .navigationTitle("Downloads")
       .searchable(text: $search, prompt: "Search downloads")
       .toolbar {
+        ToolbarItem(placement: .topBarLeading) {
+          Button("Settings", systemImage: "gearshape") { showingSettings = true }
+            .accessibilityIdentifier("settings")
+        }
         ToolbarItem(placement: .primaryAction) {
           Button("Add Video", systemImage: "plus") { showingAddVideo = true }
             .accessibilityIdentifier("add-video")
         }
-        ToolbarItem(placement: .bottomBar) {
-          pasteButton
+        if horizontalSizeClass == .compact {
+          ToolbarItem(placement: .bottomBar) {
+            pasteButton
+          }
+          .visibilityPriority(.high)
         }
-        .visibilityPriority(.high)
         DefaultToolbarItem(kind: .search, placement: .bottomBar)
       }
       .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -115,7 +126,7 @@ struct LibraryView: View {
   private var pasteButton: some View {
     Button("Paste & Download", systemImage: "document.on.clipboard", action: pasteAndDownload)
       .labelStyle(.iconOnly)
-      .disabled(library.isDownloading)
+      .disabled(library.isDownloading || library.isUpgrading)
       .accessibilityIdentifier("paste-and-download")
   }
 
@@ -275,7 +286,7 @@ private struct AddVideoView: View {
         }
         Section {
           Picker("Quality", selection: $library.preferredQuality) {
-            ForEach(DownloadQuality.allCases) { quality in
+            ForEach(DownloadQuality.allCases.filter { $0 != .maximum }) { quality in
               Text(quality.label).tag(quality)
             }
           }
@@ -364,20 +375,13 @@ struct PlaybackView: View {
   let url: URL
   let session: PlaybackSession
   var onRestore: () -> Void
-  @State private var showingFullScreen = false
 
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 20) {
-        Group {
-          if showingFullScreen {
-            Color.black
-          } else {
-            NativePlayer(session: session, onRestore: onRestore)
-          }
-        }
-        .aspectRatio(16 / 9, contentMode: .fit)
-        .clipShape(.rect(cornerRadius: 18))
+        NativePlayer(session: session, onRestore: onRestore)
+          .aspectRatio(16 / 9, contentMode: .fit)
+          .clipShape(.rect(cornerRadius: 18))
         VStack(alignment: .leading, spacing: 8) {
           Text(video.title).font(.title3.weight(.semibold))
           Text("\(video.subtitle) · \(video.qualityLabel)").foregroundStyle(.secondary)
@@ -387,12 +391,6 @@ struct PlaybackView: View {
           Label("Available offline", systemImage: "checkmark.circle.fill")
             .font(.footnote).foregroundStyle(.secondary)
         }
-        Button("Full Screen", systemImage: "arrow.up.left.and.arrow.down.right") {
-          showingFullScreen = true
-        }
-        .buttonStyle(.glass)
-        .controlSize(.large)
-        .accessibilityIdentifier("full-screen-video")
       }
       .padding(20)
       .frame(maxWidth: 1000)
@@ -406,22 +404,7 @@ struct PlaybackView: View {
     }
     .task(id: video.filename) { session.open(video, url: url) }
     .onDisappear {
-      if !showingFullScreen && !session.isPictureInPictureActive { session.player.pause() }
-    }
-    .fullScreenCover(isPresented: $showingFullScreen) {
-      NativePlayer(session: session) {
-        onRestore()
-        showingFullScreen = true
-      }
-      .ignoresSafeArea()
-      .background(.black)
-      .overlay(alignment: .topLeading) {
-        Button("Close Full Screen", systemImage: "xmark") { showingFullScreen = false }
-          .labelStyle(.iconOnly)
-          .buttonStyle(.glass)
-          .buttonBorderShape(.circle)
-          .padding(20)
-      }
+      if !session.isPictureInPictureActive && !session.isFullScreenActive { session.player.pause() }
     }
   }
 }
