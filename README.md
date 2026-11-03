@@ -2,11 +2,11 @@
 
 A minimal native YouTube download library for iOS 27, built with SwiftUI and [YouTubeKit](https://github.com/alexeichhorn/YouTubeKit).
 
-Paste a video or Shorts link, tap the download arrow, and select the saved video to play it offline. Swipe a download to delete it, or touch and hold to share its local MP4. Search appears once the library has content.
+Tap the clipboard icon above Search in the native Duo toolbar to immediately save a copied YouTube link. To enter or review a URL first, tap Add Video, paste a video or Shorts link, then tap Download Video. Select the saved video to play it offline. Swipe a download to delete it, or touch and hold to share its local MP4. Search appears once the library has content.
 
 ## Design
 
-System typography, semantic colours, native Liquid Glass controls and a single library. iPhone Duo uses the same persistent selection and download state across folding: a compact library on the cover and a library/player split when sufficient width is available. Standard navigation adapts to rotation, Dynamic Type, dark appearance, VoiceOver and reduced motion.
+System typography, semantic colours, native Liquid Glass controls and an inset grouped library. A focused Add Video sheet keeps URL entry separate from browsing, with a labelled download action and inline validation. A compact progress panel appears only during downloads. iPhone Duo uses the same persistent selection and download state across folding: a compact library on the cover and a library/player split when sufficient width is available. Standard navigation adapts to rotation, Dynamic Type, dark appearance, VoiceOver and reduced motion.
 
 ## Build
 
