@@ -17,61 +17,61 @@ struct LibraryView: View {
   private var selectedVideo: SavedVideo? { library.videos.first { $0.id == selection } }
 
   var body: some View {
-    TabView {
-      Tab("Downloads", systemImage: "arrow.down.circle") {
-        libraryNavigation
-      }
-    }
-    .tabViewStyle(.tabBarOnly)
-    .tabViewBottomAccessory {
-      Button(action: pasteAndDownload) {
-        Label("Paste & Download", systemImage: "document.on.clipboard")
-          .font(.body.weight(.semibold))
-          .frame(maxWidth: .infinity, minHeight: 44)
-          .contentShape(.rect)
-      }
-      .buttonStyle(.plain)
-      .foregroundStyle(library.isDownloading ? Color.secondary : Color.accentColor)
-      .disabled(library.isDownloading)
-      .accessibilityIdentifier("paste-and-download")
-    }
-    .alert(
-      "Unable to complete action",
-      isPresented: Binding(
-        get: { library.errorMessage != nil },
-        set: { if !$0 { library.errorMessage = nil } }
-      )
-    ) {
-      Button("OK") { library.errorMessage = nil }
-    } message: {
-      Text(library.errorMessage ?? "")
-    }
-    .confirmationDialog(
-      "Delete this download?",
-      isPresented: Binding(
-        get: { pendingDeletion != nil },
-        set: { if !$0 { pendingDeletion = nil } }
-      ), titleVisibility: .visible
-    ) {
-      if let video = pendingDeletion {
-        Button("Delete Download", role: .destructive) {
-          if selection == video.id { selection = nil }
-          library.delete(video)
-          pendingDeletion = nil
+    libraryNavigation
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        HStack {
+          Spacer()
+          Button(action: pasteAndDownload) {
+            Label("Paste & Download", systemImage: "document.on.clipboard")
+              .labelStyle(.iconOnly)
+              .font(.title3)
+              .frame(width: 44, height: 44)
+          }
+          .buttonStyle(.glass)
+          .buttonBorderShape(.circle)
+          .disabled(library.isDownloading)
+          .accessibilityIdentifier("paste-and-download")
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
       }
-    } message: {
-      Text("The video will be removed from this device.")
-    }
-    .sensoryFeedback(.success, trigger: library.videos.count) { old, new in new > old }
-    .onChange(of: library.videos.count) { old, new in
-      if new > old { draftLink = "" }
-    }
-    .sheet(isPresented: $showingAddVideo) {
-      AddVideoView(library: library, link: $draftLink)
-        .presentationDetents([.height(420), .large])
-        .presentationDragIndicator(.visible)
-    }
+      .alert(
+        "Unable to complete action",
+        isPresented: Binding(
+          get: { library.errorMessage != nil },
+          set: { if !$0 { library.errorMessage = nil } }
+        )
+      ) {
+        Button("OK") { library.errorMessage = nil }
+      } message: {
+        Text(library.errorMessage ?? "")
+      }
+      .confirmationDialog(
+        "Delete this download?",
+        isPresented: Binding(
+          get: { pendingDeletion != nil },
+          set: { if !$0 { pendingDeletion = nil } }
+        ), titleVisibility: .visible
+      ) {
+        if let video = pendingDeletion {
+          Button("Delete Download", role: .destructive) {
+            if selection == video.id { selection = nil }
+            library.delete(video)
+            pendingDeletion = nil
+          }
+        }
+      } message: {
+        Text("The video will be removed from this device.")
+      }
+      .sensoryFeedback(.success, trigger: library.videos.count) { old, new in new > old }
+      .onChange(of: library.videos.count) { old, new in
+        if new > old { draftLink = "" }
+      }
+      .sheet(isPresented: $showingAddVideo) {
+        AddVideoView(library: library, link: $draftLink)
+          .presentationDetents([.height(420), .large])
+          .presentationDragIndicator(.visible)
+      }
   }
 
   private var libraryNavigation: some View {
