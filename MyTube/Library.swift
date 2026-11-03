@@ -12,6 +12,15 @@ struct SavedVideo: Codable, Identifiable, Hashable {
   var bytes: Int64
   var duration: Double
   var resolution: Int
+  var pixelWidth: Int? = nil
+  var pixelHeight: Int? = nil
+
+  var dimensionsLabel: String? {
+    guard let pixelWidth, let pixelHeight else { return nil }
+    return "\(pixelWidth) × \(pixelHeight)"
+  }
+
+  var qualityLabel: String { resolution >= 2160 ? "4K" : "\(resolution)p" }
 
   var subtitle: String {
     let seconds = Int(duration.isFinite ? duration : 0)
@@ -44,12 +53,18 @@ final class Library {
   private(set) var isDownloading = false
   private(set) var progress: Double?
   private(set) var activityTitle = "Preparing video…"
+  private(set) var activityStatus = "Finding video…"
+  var preferredQuality: DownloadQuality = .fullHD {
+    didSet { UserDefaults.standard.set(preferredQuality.rawValue, forKey: "downloadQuality") }
+  }
   var errorMessage: String?
   private var task: Task<Void, Never>?
   private let directory: URL
   private var index: URL { directory.appendingPathComponent("library.json") }
 
   init(directory: URL? = nil) {
+    preferredQuality =
+      DownloadQuality(rawValue: UserDefaults.standard.integer(forKey: "downloadQuality")) ?? .fullHD
     self.directory =
       directory ?? URL.documentsDirectory.appendingPathComponent("Videos", isDirectory: true)
     do {
@@ -76,13 +91,17 @@ final class Library {
 
   func download(_ link: YouTubeLink) {
     guard !isDownloading else { return }
-    guard !videos.contains(where: { $0.id == link.videoID }) else {
-      errorMessage = "This video is already in your library."
+    let quality = preferredQuality
+    if let existing = videos.first(where: { $0.id == link.videoID }),
+      existing.resolution >= quality.rawValue
+    {
+      errorMessage = "A download at this quality or better is already in your library."
       return
     }
     isDownloading = true
     progress = nil
     activityTitle = "Preparing video…"
+    activityStatus = "Finding video…"
     task = Task { [self] in
       let background = UIApplication.shared.beginBackgroundTask(withName: "Save video") {
         [weak library = self] in
@@ -95,31 +114,48 @@ final class Library {
         task = nil
       }
       var createdFiles: [URL] = []
+      let workspace = FileManager.default.temporaryDirectory.appendingPathComponent(
+        UUID().uuidString, isDirectory: true)
+      defer { try? FileManager.default.removeItem(at: workspace) }
       do {
-        let (title, stream) = try await VideoResolver.resolve(link.videoID)
+        try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
+        let (title, plan) = try await VideoResolver.resolve(link.videoID, quality: quality)
         activityTitle = title
-        try await stream.waitUntilAvailable()
-        try Task.checkCancellation()
-        let delegate = DownloadProgress { [weak library = self] value in
-          Task { @MainActor in library?.progress = value }
+        if let existing = videos.first(where: { $0.id == link.videoID }),
+          existing.resolution >= plan.resolution
+        {
+          errorMessage =
+            "The saved video is already at the best available quality for this selection."
+          return
         }
-        var request = URLRequest(url: stream.url)
-        request.timeoutInterval = 60
-        let (temporary, response) = try await URLSession.shared.download(
-          for: request, delegate: delegate)
-        defer { try? FileManager.default.removeItem(at: temporary) }
-        guard let response = response as? HTTPURLResponse, (200...299).contains(response.statusCode)
-        else {
-          throw DownloadError.rejected
-        }
-        try Task.checkCancellation()
-        // AVFoundation needs the MP4 extension, rather than URLSession's .tmp suffix.
-        let destination = directory.appendingPathComponent("\(link.videoID).mp4")
-        try FileManager.default.moveItem(at: temporary, to: destination)
+        activityStatus = "Downloading video · \(plan.resolution)p"
+        let videoFile = workspace.appendingPathComponent("video.mp4")
+        try await transfer(plan.video, to: videoFile)
+        let destination = directory.appendingPathComponent(
+          "\(link.videoID)-\(UUID().uuidString).mp4")
         createdFiles.append(destination)
+        if let audio = plan.audio {
+          activityStatus = "Downloading audio"
+          progress = nil
+          let audioFile = workspace.appendingPathComponent("audio.m4a")
+          try await transfer(audio, to: audioFile)
+          activityStatus = "Combining video and audio…"
+          progress = nil
+          try await MediaAssembler.combine(video: videoFile, audio: audioFile, output: destination)
+        } else {
+          try FileManager.default.moveItem(at: videoFile, to: destination)
+        }
+        try Task.checkCancellation()
+        activityStatus = "Saving video…"
+        progress = nil
         let asset = AVURLAsset(url: destination)
         guard try await asset.load(.isPlayable) else { throw DownloadError.invalidMedia }
         let duration = try await asset.load(.duration).seconds
+        guard let picture = try await asset.loadTracks(withMediaType: .video).first,
+          !(try await asset.loadTracks(withMediaType: .audio)).isEmpty,
+          duration.isFinite, duration > 0
+        else { throw DownloadError.invalidMedia }
+        let dimensions = try await picture.load(.naturalSize)
         // Generate a local thumbnail so the entire library works offline.
         var thumbnailFilename: String?
         let generator = AVAssetImageGenerator(asset: AVURLAsset(url: destination))
@@ -128,7 +164,7 @@ final class Library {
         if let frame = try? await generator.image(at: .zero),
           let data = UIImage(cgImage: frame.image).jpegData(compressionQuality: 0.8)
         {
-          let filename = "\(link.videoID).jpg"
+          let filename = "\(link.videoID)-\(UUID().uuidString).jpg"
           let file = directory.appendingPathComponent(filename)
           try data.write(to: file, options: .atomic)
           createdFiles.append(file)
@@ -139,10 +175,19 @@ final class Library {
         let video = SavedVideo(
           id: link.videoID, title: title, filename: destination.lastPathComponent,
           thumbnailFilename: thumbnailFilename, savedAt: .now,
-          bytes: Int64(bytes), duration: duration, resolution: stream.videoResolution ?? 0)
-        let updated = [video] + videos
+          bytes: Int64(bytes), duration: duration, resolution: plan.resolution,
+          pixelWidth: Int(abs(dimensions.width)), pixelHeight: Int(abs(dimensions.height)))
+        let oldVersion = videos.first { $0.id == video.id }
+        let updated = [video] + videos.filter { $0.id != video.id }
         try persist(updated)
         videos = updated
+        // Keep the old download intact until the upgraded file and index are safely stored.
+        if let oldVersion {
+          try? FileManager.default.removeItem(at: url(for: oldVersion))
+          if let image = thumbnail(for: oldVersion) {
+            try? FileManager.default.removeItem(at: image)
+          }
+        }
       } catch {
         for file in createdFiles { try? FileManager.default.removeItem(at: file) }
         if !Task.isCancelled {
@@ -150,6 +195,24 @@ final class Library {
         }
       }
     }
+  }
+
+  private func transfer(_ stream: YouTubeKit.Stream, to destination: URL) async throws {
+    try await stream.waitUntilAvailable()
+    try Task.checkCancellation()
+    let delegate = DownloadProgress { [weak library = self] value in
+      Task { @MainActor in library?.progress = value }
+    }
+    var request = URLRequest(url: stream.url)
+    request.timeoutInterval = 60
+    let (temporary, response) = try await URLSession.shared.download(
+      for: request, delegate: delegate)
+    defer { try? FileManager.default.removeItem(at: temporary) }
+    guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+      throw DownloadError.rejected
+    }
+    try Task.checkCancellation()
+    try FileManager.default.moveItem(at: temporary, to: destination)
   }
 
   func cancel() { task?.cancel() }
@@ -175,25 +238,58 @@ private enum DownloadError: LocalizedError {
   case noStream, rejected, invalidMedia
   var errorDescription: String? {
     switch self {
-    case .noStream: "YouTube didn’t provide an MP4 with both video and audio. Try another video."
+    case .noStream:
+      "YouTube didn’t provide compatible video and audio at this quality. Try a lower quality."
     case .rejected: "YouTube refused the download. Please try again later."
     case .invalidMedia: "The downloaded file couldn’t be played. Please try again."
     }
   }
 }
 
-// Keep YouTubeKit's non-Sendable extractor on the generic executor, off the UI actor.
+struct VideoStreamPlan: Sendable {
+  let video: YouTubeKit.Stream
+  let audio: YouTubeKit.Stream?
+  var resolution: Int { video.videoResolution ?? 0 }
+}
+
+// Keep YouTubeKit's non-Sendable extractor off the UI actor.
 private enum VideoResolver {
-  static func resolve(_ videoID: String) async throws -> (String, YouTubeKit.Stream) {
+  static func resolve(_ videoID: String, quality: DownloadQuality) async throws -> (
+    String, VideoStreamPlan
+  ) {
     let youtube = YouTube(videoID: videoID, methods: [.local])
     let metadata = try await youtube.metadata
-    guard
-      let stream = try await youtube.streams
-        .filter({
-          $0.includesVideoAndAudioTrack && $0.isNativelyPlayable && $0.fileExtension == .mp4
-        })
-        .highestResolutionStream()
+    let streams = try await youtube.streams
+    let candidates = streams.filter {
+      $0.includesVideoTrack && $0.isNativelyPlayable && $0.fileExtension == .mp4
+    }
+    guard let resolution = quality.resolution(from: candidates.compactMap(\.videoResolution)),
+      let video = candidates.filter({ $0.videoResolution == resolution }).max(by: { lhs, rhs in
+        // Prefer H.264 at the same resolution for broad MP4 export and playback support.
+        let leftAVC = isAVC(lhs)
+        let rightAVC = isAVC(rhs)
+        if leftAVC != rightAVC { return !leftAVC }
+        return (lhs.bitrate ?? 0) < (rhs.bitrate ?? 0)
+      })
     else { throw DownloadError.noStream }
-    return (metadata?.title ?? "YouTube video", stream)
+    let audio: YouTubeKit.Stream?
+    if video.includesAudioTrack {
+      audio = nil
+    } else {
+      guard
+        let track = streams.filter({
+          !$0.includesVideoTrack && $0.includesAudioTrack && $0.isNativelyPlayable
+            && $0.fileExtension == .m4a
+        })
+        .highestAudioBitrateStream()
+      else { throw DownloadError.noStream }
+      audio = track
+    }
+    return (metadata?.title ?? "YouTube video", VideoStreamPlan(video: video, audio: audio))
+  }
+
+  private static func isAVC(_ stream: YouTubeKit.Stream) -> Bool {
+    if case .avc1 = stream.videoCodec { return true }
+    return false
   }
 }
