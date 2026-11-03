@@ -6,6 +6,7 @@ import SwiftUI
 final class PlaybackSession {
   let player = AVPlayer()
   var isPictureInPictureActive = false
+  var isFullScreenActive = false
   @ObservationIgnored var pictureInPictureController: AVPlayerViewController?
   @ObservationIgnored var pictureInPictureDelegate: AnyObject?
   private(set) var filename: String?
@@ -33,6 +34,7 @@ struct NativePlayer: UIViewControllerRepresentable {
 
   func makeUIViewController(context: Context) -> AVPlayerViewController {
     let controller = AVPlayerViewController()
+    controller.additionalSafeAreaInsets = UIEdgeInsets(top: 16, left: 0, bottom: 8, right: 0)
     controller.player = session.player
     controller.showsPlaybackControls = true
     controller.allowsPictureInPicturePlayback = true
@@ -52,6 +54,22 @@ struct NativePlayer: UIViewControllerRepresentable {
     init(session: PlaybackSession, onRestore: @escaping () -> Void) {
       self.session = session
       self.onRestore = onRestore
+    }
+    func playerViewController(
+      _ playerViewController: AVPlayerViewController,
+      willBeginFullScreenPresentationWithAnimationCoordinator coordinator:
+        UIViewControllerTransitionCoordinator
+    ) {
+      session.isFullScreenActive = true
+    }
+    func playerViewController(
+      _ playerViewController: AVPlayerViewController,
+      willEndFullScreenPresentationWithAnimationCoordinator coordinator:
+        UIViewControllerTransitionCoordinator
+    ) {
+      coordinator.animate(alongsideTransition: nil) { [session] _ in
+        session.isFullScreenActive = false
+      }
     }
     func playerViewControllerWillStartPictureInPicture(
       _ playerViewController: AVPlayerViewController

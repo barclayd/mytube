@@ -20,7 +20,13 @@ struct SavedVideo: Codable, Identifiable, Hashable {
     return "\(pixelWidth) × \(pixelHeight)"
   }
 
-  var qualityLabel: String { resolution >= 2160 ? "4K" : "\(resolution)p" }
+  var qualityLabel: String {
+    switch resolution {
+    case 4320...: "8K"
+    case 2160..<4320: "4K"
+    default: "\(resolution)p"
+    }
+  }
 
   var subtitle: String {
     let seconds = Int(duration.isFinite ? duration : 0)
@@ -59,6 +65,12 @@ final class Library {
   }
   var errorMessage: String?
   private var task: Task<Void, Never>?
+  private var upgradeTask: Task<Void, Never>?
+  private(set) var isUpgrading = false
+  private(set) var upgradeIndex = 0
+  private(set) var upgradeTotal = 0
+  private(set) var upgradeSummary: String?
+  private var upgradeFailures = 0
   private let directory: URL
   private var index: URL { directory.appendingPathComponent("library.json") }
 
@@ -90,8 +102,12 @@ final class Library {
   }
 
   func download(_ link: YouTubeLink) {
+    guard !isUpgrading else { return }
+    startDownload(link, quality: preferredQuality)
+  }
+
+  private func startDownload(_ link: YouTubeLink, quality: DownloadQuality, quietly: Bool = false) {
     guard !isDownloading else { return }
-    let quality = preferredQuality
     if let existing = videos.first(where: { $0.id == link.videoID }),
       existing.resolution >= quality.rawValue
     {
@@ -124,8 +140,10 @@ final class Library {
         if let existing = videos.first(where: { $0.id == link.videoID }),
           existing.resolution >= plan.resolution
         {
-          errorMessage =
-            "The saved video is already at the best available quality for this selection."
+          if !quietly {
+            errorMessage =
+              "The saved video is already at the best available quality for this selection."
+          }
           return
         }
         activityStatus = "Downloading video · \(plan.resolution)p"
@@ -191,7 +209,11 @@ final class Library {
       } catch {
         for file in createdFiles { try? FileManager.default.removeItem(at: file) }
         if !Task.isCancelled {
-          errorMessage = "Couldn’t download this video. \(error.localizedDescription)"
+          if quietly {
+            upgradeFailures += 1
+          } else {
+            errorMessage = "Couldn’t download this video. \(error.localizedDescription)"
+          }
         }
       }
     }
@@ -215,7 +237,47 @@ final class Library {
     try FileManager.default.moveItem(at: temporary, to: destination)
   }
 
-  func cancel() { task?.cancel() }
+  func cancel() {
+    upgradeTask?.cancel()
+    task?.cancel()
+  }
+
+  func upgradeAllToMaximumQuality() {
+    guard !isDownloading, !isUpgrading, !videos.isEmpty else { return }
+    let snapshot = videos
+    isUpgrading = true
+    upgradeIndex = 0
+    upgradeTotal = snapshot.count
+    upgradeFailures = 0
+    upgradeSummary = nil
+    upgradeTask = Task { [self] in
+      var upgraded = 0
+      var alreadyAtMaximum = 0
+      defer {
+        isUpgrading = false
+        upgradeTask = nil
+        upgradeSummary =
+          "\(Task.isCancelled ? "Stopped. " : "Finished. ")\(upgraded) upgraded, \(alreadyAtMaximum) already at maximum, \(upgradeFailures) failed."
+      }
+      for (index, video) in snapshot.enumerated() {
+        if Task.isCancelled { break }
+        upgradeIndex = index + 1
+        guard videos.contains(where: { $0.id == video.id }),
+          let link = YouTubeLink("https://youtu.be/\(video.id)")
+        else { continue }
+        let failuresBefore = upgradeFailures
+        startDownload(link, quality: .maximum, quietly: true)
+        await task?.value
+        if let current = videos.first(where: { $0.id == video.id }) {
+          if current.filename != video.filename {
+            upgraded += 1
+          } else if !Task.isCancelled && upgradeFailures == failuresBefore {
+            alreadyAtMaximum += 1
+          }
+        }
+      }
+    }
+  }
 
   func delete(_ video: SavedVideo) {
     do {
