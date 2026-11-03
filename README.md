@@ -31,11 +31,15 @@ YouTubeKit is vendored at `Vendor/YouTubeKit` from revision `7f75a2299dc329c0b78
 - Settings → Upgrade All to Max Quality checks every saved video in sequence, skips videos already at maximum and preserves old copies until each replacement is safely saved; supports stopping the batch
 - Does not download live HLS streams
 - Waits for YouTubeKit's stream availability time before requesting media
+- Reports per-video upgrade failures; pauses and preserves the remaining queue when YouTube requires a sign-in/bot check, without retrying every video
 - Reports extraction and HTTP failures; keeps the entered URL available for retry
 - Shows transfer progress when the server provides a content length; supports cancellation
 - Validates playback before adding a video to the library and removes partial files on failure
 - Stores an atomic JSON index, MP4s and generated thumbnails in Documents/Videos, excluded from iCloud backups
-- Continues briefly in the background using the system's finite task allowance; interrupted downloads must be restarted (no resumable background transfer service)
+- Uses `BGContinuedProcessingTask` for the whole user-started download or upgrade batch, including extraction, transfers and remuxing, with system progress and cancellation while the screen is locked
+- Saves the remaining upgrade queue after each video; Settings offers Resume Quality Upgrades after an interruption or relaunch, without redoing completed videos
+- Keeps working files accessible after the first device unlock; if iOS denies background execution, shows a keep-open message and uses only a short cleanup allowance
+- Remains subject to iOS resource limits and force-quit cancellation; resuming restarts the interrupted video's transfer (no byte-range resume)
 
 The player uses AVKit’s native full-screen, transport, AirPlay and Picture in Picture controls, with background audio and safe-area insets to give the controls room inside the player. PiP can continue when leaving the app, subject to iOS support and the user’s PiP settings.
 

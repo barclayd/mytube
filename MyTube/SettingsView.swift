@@ -8,7 +8,13 @@ struct SettingsView: View {
     NavigationStack {
       Form {
         Section {
-          Button("Upgrade All to Max Quality", systemImage: "arrow.up.circle") {
+          Button(
+            library.isUpgrading
+              ? "Upgrading Videos…"
+              : (library.hasPendingUpgrades
+                ? "Resume Quality Upgrades" : "Upgrade All to Max Quality"),
+            systemImage: "arrow.up.circle"
+          ) {
             library.upgradeAllToMaximumQuality()
           }
           .disabled(library.videos.isEmpty || library.isDownloading || library.isUpgrading)
@@ -31,12 +37,29 @@ struct SettingsView: View {
                 if library.progress == nil { ProgressView().controlSize(.small) }
               }
               if let progress = library.progress { ProgressView(value: progress) }
+              if let notice = library.backgroundNotice {
+                Text(notice).font(.footnote).foregroundStyle(.secondary)
+              }
             }
             .padding(.vertical, 8)
             Button("Stop Upgrades", role: .cancel) { library.cancel() }
           }
         } else if let summary = library.upgradeSummary {
           Section { Text(summary).foregroundStyle(.secondary) }
+        }
+        if let reason = library.upgradePauseReason {
+          Section { Text(reason).foregroundStyle(.secondary) }
+        }
+        if !library.upgradeErrors.isEmpty {
+          Section("Couldn’t Upgrade") {
+            ForEach(library.upgradeErrors) { failure in
+              VStack(alignment: .leading, spacing: 6) {
+                Text(failure.title)
+                Text(failure.message).font(.footnote).foregroundStyle(.secondary)
+              }
+              .padding(.vertical, 4)
+            }
+          }
         }
       }
       .navigationTitle("Settings")

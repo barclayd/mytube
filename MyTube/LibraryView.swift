@@ -216,6 +216,9 @@ struct LibraryView: View {
             ?? library.activityStatus
         )
         .font(.caption).foregroundStyle(.secondary)
+        if let notice = library.backgroundNotice {
+          Text(notice).font(.caption2).foregroundStyle(.secondary)
+        }
       }
       Spacer(minLength: 0)
       Button("Cancel Download", systemImage: "xmark") { library.cancel() }

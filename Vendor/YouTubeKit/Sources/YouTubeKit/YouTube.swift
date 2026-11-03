@@ -393,6 +393,7 @@ public class YouTube {
             }
             
             // remove video infos with incorrect videoID
+            try Extraction.checkForRequestBlock(videoID: videoID, responses: videoInfos)
             for (i, videoInfo) in videoInfos.enumerated() where videoInfo.videoDetails?.videoId != videoID {
                 os_log("Skipping player response from client %{public}i. Got player response for %{public}@ instead of %{public}@", log: log, type: .info, i, videoInfo.videoDetails?.videoId ?? "nil", videoID)
             }

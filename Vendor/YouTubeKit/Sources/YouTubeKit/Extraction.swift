@@ -12,6 +12,17 @@ import os.log
 class Extraction {
     
     private static let log = OSLog(Extraction.self)
+
+    /// Preserve an explicit server challenge instead of reporting missing video metadata.
+    class func checkForRequestBlock(videoID: String, responses: [InnerTube.VideoInfo]) throws {
+        guard !responses.contains(where: { $0.videoDetails?.videoId == videoID }) else { return }
+        if responses.contains(where: {
+            $0.playabilityStatus?.status == "LOGIN_REQUIRED"
+                && $0.playabilityStatus?.reason?.lowercased().contains("not a bot") == true
+        }) {
+            throw YouTubeKitError.requestBlocked
+        }
+    }
     
     class func extractVideoID(from url: String) -> String? {
         let regex = NSRegularExpression(#"(?:v=|\/)([0-9A-Za-z_-]{11}).*"#)
